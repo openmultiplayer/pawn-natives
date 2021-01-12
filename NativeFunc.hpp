@@ -229,16 +229,13 @@ namespace pawn_natives
 	    public pawn_natives::NativeFunc<RET, TS ...>                            \
 	{                                                                           \
 	public:                                                                     \
-	    Native_##func##_()                                                      \
-	    :                                                                       \
-	        pawn_natives::NativeFunc<RET, TS ...>(#func, (AMX_NATIVE)&Call)     \
-	    {                                                                       \
-	    }                                                                       \
+	    Native_##func##_();                                                     \
 	                                                                            \
 	    RET Do(TS ...) const override;                                          \
 	                                                                            \
 	private:                                                                    \
 	    static cell AMX_NATIVE_CALL Call(AMX * amx, cell * args);               \
+	    using Base = pawn_natives::NativeFunc<RET, TS ...>;                     \
 	};                                                                          \
 	                                                                            \
 	template class Native_##func##_<params>;                                    \
@@ -251,13 +248,22 @@ namespace pawn_natives
 #define PAWN_NATIVE_DEFN(object, func, params) PAWN_NATIVE_DEFN_(object, func, params)
 
 #define PAWN_NATIVE_DEFN_(object, func, params) \
-	Native_##func func;                                                         \
+\
 	                                                                            \
 	template <>                                                                 \
 	cell AMX_NATIVE_CALL Native_##func::Call(AMX * amx, cell * args)            \
 	{                                                                           \
 	    return func.CallDoOuter(amx, args);                                     \
 	}                                                                           \
+	                                                                            \
+	template <>                                                                 \
+	Native_##func::Native_##func##_()                                           \
+	    : Base(#func, (AMX_NATIVE)&Call)                                        \
+	    {                                                                       \
+	    }                                                                       \
+                                                                                    \
+	Native_##func func;                                                         \
+                                                                                    \
 	                                                                            \
 	template <>                                                                 \
 	PAWN_NATIVE__RETURN(params)                                                 \
