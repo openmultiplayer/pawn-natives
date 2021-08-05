@@ -6,151 +6,6 @@
 #include <optional>
 #include <amx/amx.h>
 
-// This is in the global namespace, not the pawn_natives namespace.
-template <typename T>
-class DI
-{
-public:
-	// implicit cons
-		DI(std::shared_ptr<T> that)
-	:
-		that_(that)
-	{
-	}
-
-	T * operator->() const
-	{
-		return that_.get();
-	}
-
-	T & operator*()
-	{
-		return *that_;
-	}
-
-	T * const operator->()
-	{
-		return that_.get();
-	}
-
-	T const & operator*() const
-	{
-		return *that_;
-	}
-
-	operator std::shared_ptr<T>()
-	{
-		return that_;
-	}
-
-	operator T & ()
-	{
-		return *that_;
-	}
-
-	operator T const & () const
-	{
-		return *that_;
-	}
-
-private:
-	std::shared_ptr<T> that_;
-};
-
-// This is in the global namespace, not the pawn_natives namespace.  It
-// completely extends the class as transparently as I can make it.
-template <typename T, size_t N>
-class ARG
-{
-public:
-	// implicit cons
-	ARG(T that)
-		:
-		that_(that)
-	{
-	}
-
-	T operator*()
-	{
-		return that_;
-	}
-
-	T* operator->()
-	{
-		return &that_;
-	}
-
-	T const operator*() const
-	{
-		return that_;
-	}
-
-	T const* operator->() const
-	{
-		return &that_;
-	}
-
-	operator T ()
-	{
-		return that_;
-	}
-
-	operator T const () const
-	{
-		return that_;
-	}
-
-private:
-	T that_;
-};
-
-// This is in the global namespace, not the pawn_natives namespace.  It
-// completely extends the class as transparently as I can make it.
-template <typename T, size_t N>
-class ARG<T &, N>
-{
-public:
-	// implicit cons
-	ARG(T & that)
-		:
-		that_(that)
-	{
-	}
-
-	T & operator*()
-	{
-		return that_;
-	}
-
-	T* operator->()
-	{
-		return &that_;
-	}
-
-	T const & operator*() const
-	{
-		return that_;
-	}
-
-	T const* operator->() const
-	{
-		return that_;
-	}
-
-	operator T& ()
-	{
-		return that_;
-	}
-
-	operator T const& () const
-	{
-		return that_;
-	}
-
-private:
-	T& that_;
-};
-
 namespace pawn_natives
 {
 	// This is for any casts that can't go on, but where this is somewhat expected.  For example, a
@@ -180,11 +35,6 @@ namespace pawn_natives
 		{
 			return (T *)ref;
 		}
-	};
-
-	template <typename T, typename = void>
-	struct ParamInject
-	{
 	};
 
 	template <>
@@ -269,70 +119,24 @@ namespace pawn_natives
 			value_;
 	};
 
-	template <>
-	class ParamCast<varargs_t>
+	template <typename T>
+	class ParamCast<T *>
 	{
 	public:
-		ParamCast(AMX * amx, cell * params, int idx)
-		:
-			value_(amx, params, idx)
-		{
-		}
-
-		~ParamCast()
-		{
-			// Some versions may need to write data back here, but not this one.
-		}
-
-		ParamCast(ParamCast<varargs_t> const &) = delete;
-		ParamCast(ParamCast<varargs_t> &&) = delete;
-
-		operator varargs_t()
-		{
-			return &value_;
-		}
-
-		static constexpr int Size = 1;
-
-	private:
-		struct varargs_s
-			value_;
-	};
-
-	template <>
-	class ParamCast<varargs_t const>
-	{
-	public:
-		ParamCast(AMX * amx, cell * params, int idx)
-		:
-			value_(amx, params, idx)
-		{
-			// This is used as "..." - instead of passing actual varargs, which
-			// could be complex.
-		}
-
-		~ParamCast()
-		{
-			// Some versions may need to write data back here, but not this one.
-		}
-
-		ParamCast(ParamCast<varargs_t const> const &) = delete;
-		ParamCast(ParamCast<varargs_t const> &&) = delete;
-
-		operator varargs_t()
-		{
-			return &value_;
-		}
-
-		static constexpr int Size = 1;
-
-	private:
-		struct varargs_s
-			value_;
+		ParamCast(AMX*, cell*, int) = delete;
+		ParamCast() = delete;
 	};
 
 	template <typename T>
-	class ParamCast<T *>
+	class ParamCast<T const *>
+	{
+	public:
+		ParamCast(AMX*, cell*, int) = delete;
+		ParamCast() = delete;
+	};
+
+	template <typename T>
+	class ParamCast<T &>
 	{
 	public:
 		ParamCast(AMX * amx, cell * params, int idx)
@@ -350,12 +154,12 @@ namespace pawn_natives
 			// are done directly in to AMX memory.
 		}
 
-		ParamCast(ParamCast<T *> const &) = delete;
-		ParamCast(ParamCast<T *> &&) = delete;
+		ParamCast(ParamCast<T &> const &) = delete;
+		ParamCast(ParamCast<T &> &&) = delete;
 
-		operator T *()
+		operator T &()
 		{
-			return value_;
+			return *value_;
 		}
 
 		static constexpr int Size = 1;
@@ -366,80 +170,7 @@ namespace pawn_natives
 	};
 
 	template <typename T>
-	class ParamCast<std::shared_ptr<T>>
-	{
-	public:
-		ParamCast(AMX * amx, cell * params, int idx)
-		:
-			value_(ParamLookup<T>::Ref(params[idx]))
-		{
-		}
-
-		~ParamCast()
-		{
-			// Some versions may need to write data back here, but not this one.
-			// This one doesn't because we are passing the direct pointer, which means any writes
-			// are done directly in to AMX memory.
-		}
-
-		ParamCast(ParamCast<std::shared_ptr<T>> const &) = delete;
-		ParamCast(ParamCast<std::shared_ptr<T>> &&) = delete;
-
-		operator std::shared_ptr<T>()
-		{
-			return value_;
-		}
-
-		static constexpr int Size = 1;
-
-	private:
-		std::shared_ptr<T>
-			value_;
-	};
-
-	//template <typename T>
-	//class ParamCast<std::optional<T &>>
-	//{
-	//private:
-	//	static std::optional<T&> TryRef(cell c)
-	//	{
-	//		try
-	//		{
-	//			return std::optional(ParamLookup<T>::Ref(c));
-	//		}
-	//		catch (...)
-	//		{
-	//			return std::optional();
-	//		}
-	//	}
-	//public:
-	//	ParamCast(AMX * amx, cell * params, int idx)
-	//	:
-	//		value_(TryRef(params[idx]))
-	//	{
-	//	}
-	//
-	//	~ParamCast()
-	//	{
-	//		// Some versions may need to write data back here, but not this one.
-	//		// This one doesn't because we are passing the direct pointer, which means any writes
-	//		// are done directly in to AMX memory.
-	//	}
-	//
-	//	operator std::optional<T&>()
-	//	{
-	//		return value_;
-	//	}
-	//
-	//	static constexpr int Size = 1;
-	//
-	//private:
-	//	std::optional<T&>
-	//		value_;
-	//};
-
-	template <typename T>
-	class ParamCast<T const *>
+	class ParamCast<T const &>
 	{
 	public:
 		ParamCast(AMX * amx, cell * params, int idx)
@@ -463,12 +194,12 @@ namespace pawn_natives
 			// Some versions may need to write data back here, but not this one.
 		}
 
-		ParamCast(ParamCast<T const *> const &) = delete;
-		ParamCast(ParamCast<T const *> &&) = delete;
+		ParamCast(ParamCast<T const &> const &) = delete;
+		ParamCast(ParamCast<T const &> &&) = delete;
 
-		operator T const *() const
+		operator T const &() const
 		{
-			return value_;
+			return *value_;
 		}
 
 		static constexpr int Size = 1;
@@ -478,7 +209,7 @@ namespace pawn_natives
 			value_;
 	};
 
-	// Use `string *`.
+	// Use `string &`.
 	template <>
 	class ParamCast<char *>
 	{
@@ -498,19 +229,19 @@ namespace pawn_natives
 		ParamCast(ParamCast<char const *> &&) = delete;
 	};
 
-	// `string &` doesn't exist any more.  If it is a return value, the convention
-	// is to use `string *`.  If it is an input, use `string const &`.
+	// `string *` doesn't exist any more.  If it is a return value, the convention
+	// is to use `string &`.  If it is an input, use `string const &`.
 	template <>
-	class ParamCast<std::string &>
+	class ParamCast<std::string *>
 	{
 	public:
 		ParamCast(AMX * amx, cell * params, int idx) = delete;
-		ParamCast(ParamCast<std::string &> const &) = delete;
-		ParamCast(ParamCast<std::string &> &&) = delete;
+		ParamCast(ParamCast<std::string *> const &) = delete;
+		ParamCast(ParamCast<std::string *> &&) = delete;
 	};
 
 	template <>
-	class ParamCast<std::string *>
+	class ParamCast<std::string &>
 	{
 	public:
 		ParamCast(AMX * amx, cell * params, int idx)
@@ -553,12 +284,12 @@ namespace pawn_natives
 				amx_SetString(addr_, value_.c_str(), 0, 0, len_);
 		}
 
-		ParamCast(ParamCast<std::string *> const &) = delete;
-		ParamCast(ParamCast<std::string *> &&) = delete;
+		ParamCast(ParamCast<std::string &> const &) = delete;
+		ParamCast(ParamCast<std::string &> &&) = delete;
 
-		operator std::string *()
+		operator std::string &()
 		{
-			return &value_;
+			return value_;
 		}
 
 		static constexpr int Size = 2;
@@ -685,177 +416,6 @@ namespace pawn_natives
 		{
 			return that->Do();
 		}
-	};
-
-	/*
-	    88888888ba,    88                             
-	    88      `"8b   88                             
-	    88        `8b  88                             
-	    88         88  88                             
-	    88         88  88                             
-	    88         8P  88                             
-	    88      .a8P   88                             
-	    88888888Y"'    88                             
-	*/
-
-	template <typename T>
-	class ParamCast<DI<T> *>
-	{
-	public:
-		ParamCast(AMX *, cell *, int) = delete;
-		ParamCast() = delete;
-	};
-
-	template <typename T>
-	class ParamCast<DI<T>&>
-	{
-	public:
-		ParamCast(AMX*, cell*, int) = delete;
-		ParamCast() = delete;
-	};
-
-	template <typename T>
-	class ParamCast<DI<T> const&>
-	{
-	public:
-		ParamCast(AMX*, cell*, int) = delete;
-		ParamCast() = delete;
-	};
-
-	//template <typename T>
-	//class ParamCast<DI<T>>
-	//{
-	//public:
-	//	ParamCast(AMX *, cell *, int) = delete;
-	//	ParamCast() = delete;
-	//};
-
-	template <typename T>
-	class ParamCast<DI<T>>
-	{
-	public:
-		ParamCast(AMX *, cell *, int)
-		{
-		}
-
-		~ParamCast()
-		{
-		}
-
-		operator DI<T>()
-		{
-			return DI(ParamInject<T>::Get());
-		}
-
-		operator DI<T> const() const
-		{
-			return DI(ParamInject<T>::Get());
-		}
-
-		static constexpr int Size = 0;
-
-		using type = T &;
-	};
-
-	template <typename T>
-	class ParamCast<DI<T> const>
-	{
-	public:
-		ParamCast(AMX*, cell*, int)
-		{
-		}
-
-		~ParamCast()
-		{
-		}
-
-		operator DI<T> const() const
-		{
-			return DI(ParamInject<T>::Get());
-		}
-
-		static constexpr int Size = 0;
-
-		using type = T const &;
-	};
-
-	/*
-	           db         88888888ba     ,ad8888ba,   
-	          d88b        88      "8b   d8"'    `"8b  
-	         d8'`8b       88      ,8P  d8'            
-	        d8'  `8b      88aaaaaa8P'  88             
-	       d8YaaaaY8b     88""""88'    88      88888  
-	      d8""""""""8b    88    `8b    Y8,        88  
-	     d8'        `8b   88     `8b    Y8a.    .a88  
-	    d8'          `8b  88      `8b    `"Y88888P"   
-	*/
-
-	template <typename T, size_t N>
-	class ParamCast<ARG<T, N>> : private ParamCast<T>
-	{
-	public:
-		ParamCast(AMX * amx, cell * params, int)
-		:
-			ParamCast<T>(amx, params, N + 1)
-		{
-		}
-
-		~ParamCast()
-		{
-		}
-
-		operator ARG<T, N>()
-		{
-			return ARG<T, N>((T)*this);
-		}
-
-		static constexpr int Size = 0;
-	};
-
-	template <typename T, size_t N>
-	class ParamCast<ARG<T, N> const> : private ParamCast<T const>
-	{
-	public:
-		ParamCast(AMX * amx, cell * params, int)
-		:
-			ParamCast<T const>(amx, params, N + 1)
-		{
-		}
-
-		~ParamCast()
-		{
-		}
-
-		operator ARG<T, N> const()
-		{
-			return ARG<T, N>((T const)*this);
-		}
-
-		static constexpr int Size = 0;
-	};
-
-	template <typename T, size_t N>
-	class ParamCast<ARG<T, N>*>
-	{
-	public:
-		ParamCast(AMX*, cell*, int) = delete;
-		ParamCast() = delete;
-	};
-
-	template <typename T, size_t N>
-	class ParamCast<ARG<T, N>&>
-	{
-	public:
-		ParamCast(AMX*, cell*, int) = delete;
-		ParamCast() = delete;
-	};
-
-	template <typename T, size_t N>
-	class ParamCast<ARG<T, N> const&>
-	{
-	public:
-		ParamCast(AMX*, cell*, int) = delete;
-		ParamCast() = delete;
 	};
 }
 
