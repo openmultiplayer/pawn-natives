@@ -218,9 +218,9 @@ namespace pawn_natives
 // The inheritance from `NativeFuncBase` is protected, because we don't want
 // normal users getting in to that data.  However, we do want them to be able to
 // use the common `IsEnabled` method, so re-export it.
-#define PAWN_NATIVE_DECL(object, func, type) PAWN_NATIVE_DECL_(object, func, type)
+#define PAWN_NATIVE_DECL(used_namespace, func, type) PAWN_NATIVE_DECL_(used_namespace, func, type)
 
-#define PAWN_NATIVE_DECL_(object, func, params) \
+#define PAWN_NATIVE_DECL_(used_namespace, func, params) \
 	template <typename F>                                                       \
 	class Native_##func##_ {};                                                  \
 	                                                                            \
@@ -241,19 +241,21 @@ namespace pawn_natives
 	template class Native_##func##_<params>;                                    \
 	using Native_##func = Native_##func##_<params>;                             \
 	                                                                            \
-	extern Native_##func func
+	namespace used_namespace {                                                      \
+		extern Native_##func func;                                                  \
+	}
 
 // We can't pass exceptions to another module easily, so just don't...
 
-#define PAWN_NATIVE_DEFN(object, func, params) PAWN_NATIVE_DEFN_(object, func, params)
+#define PAWN_NATIVE_DEFN(used_namespace, func, params) PAWN_NATIVE_DEFN_(used_namespace, func, params)
 
-#define PAWN_NATIVE_DEFN_(object, func, params) \
+#define PAWN_NATIVE_DEFN_(used_namespace, func, params) \
 \
 	                                                                            \
 	template <>                                                                 \
 	cell AMX_NATIVE_CALL Native_##func::Call(AMX * amx, cell * args)            \
 	{                                                                           \
-	    return func.CallDoOuter(amx, args);                                     \
+	    return used_namespace::func.CallDoOuter(amx, args);                     \
 	}                                                                           \
 	                                                                            \
 	template <>                                                                 \
@@ -261,9 +263,9 @@ namespace pawn_natives
 	    : Base(#func, (AMX_NATIVE)&Call)                                        \
 	    {                                                                       \
 	    }                                                                       \
-                                                                                    \
-	Native_##func func;                                                         \
-                                                                                    \
+                                                                                \
+	Native_##func used_namespace::func;                                         \
+                                                                                \
 	                                                                            \
 	template <>                                                                 \
 	PAWN_NATIVE__RETURN(params)                                                 \
@@ -275,7 +277,7 @@ namespace pawn_natives
 	{                                                                           \
 	    try                                                                     \
 	    {                                                                       \
-	        PAWN_NATIVE__GET_RETURN(params)(func.Do(args ...));                 \
+	        PAWN_NATIVE__GET_RETURN(params)(used_namespace::func.Do(args ...)); \
 	    }                                                                       \
 	    catch (std::exception & e)                                              \
 	    {                                                                       \
@@ -303,7 +305,7 @@ namespace pawn_natives
 #define PAWN_NATIVE_DECLARE PAWN_NATIVE_DECL
 #define PAWN_NATIVE_DEFINE  PAWN_NATIVE_DEFN
 
-#define PAWN_NATIVE(object, func, params) PAWN_NATIVE_DECL_(object, func, params); PAWN_NATIVE_DEFN_(object, func, params)
+#define PAWN_NATIVE(used_namespace, func, params) PAWN_NATIVE_DECL_(used_namespace, func, params) PAWN_NATIVE_DEFN_(used_namespace, func, params)
 
 #if 0
 
