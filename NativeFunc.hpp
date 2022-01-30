@@ -268,15 +268,16 @@ private:
 // The inheritance from `NativeFuncBase` is protected, because we don't want
 // normal users getting in to that data.  However, we do want them to be able to
 // use the common `IsEnabled` method, so re-export it.
-#define PAWN_NATIVE_DECL(used_namespace, func, type) PAWN_NATIVE_DECL_(used_namespace, func, type)
+#define PAWN_NATIVE_DECL(used_namespace, func, type) PAWN_NATIVE_DECL_(used_namespace, failret, func, type)
 
-#define PAWN_NATIVE_DECL_(used_namespace, func, params)                                \
+#define PAWN_NATIVE_DECL_(used_namespace, failret, func, params)                                \
     template <typename F>                                                              \
     class Native_##func##_ {                                                           \
     };                                                                                 \
                                                                                        \
     template <typename RET, typename... TS>                                            \
     class Native_##func##_<RET(TS...)> : public pawn_natives::NativeFunc<RET, TS...> { \
+    constexpr static const decltype(failret) FailRet = failret;                                      \
     public:                                                                            \
         Native_##func##_();                                                            \
                                                                                        \
@@ -351,11 +352,11 @@ private:
 #define PAWN_NATIVE_DEFINE_FAILRET PAWN_NATIVE_DEFN_FAILRET
 
 #define PAWN_NATIVE(used_namespace, func, params)   \
-    PAWN_NATIVE_DECL_(used_namespace, func, params) \
-    PAWN_NATIVE_DEFN_(used_namespace, 0, func, params)
+    PAWN_NATIVE_DECL_(used_namespace, false, func, params) \
+    PAWN_NATIVE_DEFN_(used_namespace, false, func, params)
 
 #define PAWN_NATIVE_FAILRET(used_namespace, failret, func, params) \
-    PAWN_NATIVE_DECL_(used_namespace, func, params)                \
+    PAWN_NATIVE_DECL_(used_namespace, failret, func, params)                \
     PAWN_NATIVE_DEFN_(used_namespace, failret, func, params)
 
 #if 0
