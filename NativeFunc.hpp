@@ -44,12 +44,20 @@ protected:
         cell
             ret
             = FailRet;
-        if (amx && params) {
+        if (amx) {
             // Check that there are enough parameters.
             amx_ = amx;
-            params_ = params;
+
+            if (params)
+                params_ = params;
+            else {
+                // NULL params means zero params, at least for GDK
+                cell no_args[] = {0};
+                params_ = no_args;
+            }
+
             try {
-                if (count_ > (unsigned int)params[0])
+                if (count_ > (unsigned int)params_[0])
                     throw std::invalid_argument("Insufficient arguments.");
                 ret = this->CallDoInner(amx, params);
             } catch (ParamCastFailure const&) {
