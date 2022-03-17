@@ -281,7 +281,7 @@ namespace pawn_natives
 		{
 			// This is the only version that actually needs to write data back.
 			if (addr_)
-				amx_SetString(addr_, value_.c_str(), 0, 0, len_);
+				amx_SetStringLen(addr_, value_.data(), value_.length(), 0, 0, len_);
 		}
 
 		ParamCast(ParamCast<std::string &> const &) = delete;
