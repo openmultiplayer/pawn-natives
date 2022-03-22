@@ -1,3 +1,5 @@
+# WARNING: Heavily modified fork of pawn-natives for internal use in open.mp. Use the upstream version!
+
 # pawn-natives
 Macros and templates for quickly defining PAWN (SA:MP mostly) natives and also exporting them for other plguins to use.
 

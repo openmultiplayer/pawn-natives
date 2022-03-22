@@ -345,11 +345,6 @@ private:
         PAWN_NATIVE__DEFAULT_RETURN(params);                                                 \
     }                                                                                        \
                                                                                              \
-    PAWN_NATIVE_EXTERN template PAWN_NATIVE_DLLEXPORT                                        \
-        typename pawn_natives::ReturnResolver<PAWN_NATIVE__RETURN(params)>::type             \
-            PAWN_NATIVE_API                                                                  \
-                NATIVE_##func<PAWN_NATIVE__RETURN(params)>(PAWN_NATIVE__PARAMETERS(params)); \
-                                                                                             \
     template <>                                                                              \
     PAWN_NATIVE__RETURN(params)                                                              \
     Native_##func::                                                                          \

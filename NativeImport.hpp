@@ -4,25 +4,6 @@
 #include <amx/amx.h>
 #include <limits>
 
-#if defined __cplusplus
-	#define PAWN_NATIVE_EXTERN extern "C"
-#else
-	#define PAWN_NATIVE_EXTERN extern
-#endif
-
-#if defined _WIN32 || defined __CYGWIN__
-	#define PAWN_NATIVE_DLLEXPORT __declspec(dllexport)
-	#define PAWN_NATIVE_DLLIMPORT __declspec(dllimport)
-	#define PAWN_NATIVE_API __cdecl
-#elif defined __linux__ || defined __APPLE__
-	#define PAWN_NATIVE_DLLEXPORT __attribute__((visibility("default")))
-	#define PAWN_NATIVE_DLLIMPORT 
-	#define PAWN_NATIVE_API __attribute__((cdecl))
-#endif
-
-#define PAWN_NATIVE_EXPORT PAWN_NATIVE_EXTERN PAWN_NATIVE_DLLEXPORT
-#define PAWN_NATIVE_IMPORT PAWN_NATIVE_EXTERN PAWN_NATIVE_DLLIMPORT
-
 #ifndef LOG_NATIVE_ERROR
 	#define LOG_NATIVE_ERROR(...) ((void)0)
 #endif
@@ -54,43 +35,6 @@ namespace pawn_natives
 		// extracting the type is much simpler than extracting the name.
 		typedef T type;
 	};
-
-	typedef struct varargs_s
-	{
-		explicit varargs_s(int num)
-		:
-			Count(num),
-			Params((cell **)malloc(Count * sizeof (cell *)))
-		{
-			// This is used as "..." - instead of passing actual varargs, which
-			// could be complex.
-			if (!Params)
-				throw std::bad_alloc();
-		}
-
-		varargs_s(AMX * amx, cell * params, int idx)
-		:
-			Count((int)params[0] / sizeof (cell) - idx + 1),
-			Params((cell **)malloc(Count * sizeof (cell *)))
-		{
-			// This is used as "..." - instead of passing actual varargs, which
-			// could be complex.
-			if (!Params)
-				throw std::bad_alloc();
-			for (int i = 0; i != Count; ++i)
-			{
-				amx_GetAddr(amx, params[idx + i], Params + i);
-			}
-		}
-
-		~varargs_s()
-		{
-			free(Params);
-		}
-
-		int     const Count;
-		cell ** const Params;
-	} * varargs_t;
 
 	class ID32Provider
 	{
@@ -363,20 +307,3 @@ namespace pawn_natives
 #define PAWN_NATIVE__MAYBE_RETURN(params) PAWN_NATIVE__MAYBE_RETURN_##params
 #define PAWN_NATIVE__DEFAULT_RETURN(params) PAWN_NATIVE__DEFAULT_RETURN_##params
 #define PAWN_NATIVE__GET_RETURN(params) PAWN_NATIVE__GET_RETURN_##params
-
-// Import a native from another plugin.
-#define PAWN_IMPORT(nspace, func, type) PAWN_IMPORT_(nspace, func, type)
-#define PAWN_IMPORT_(nspace, func, type) \
-	PAWN_NATIVE_IMPORT PAWN_NATIVE__RETURN(type) PAWN_NATIVE_API                                       \
-	    PAWN_NATIVE_##nspace##_##func(CAT(PAWN_NATIVE__WITHOUT_RETURN_, type));                        \
-	                                                                                                   \
-	namespace nspace                                                                                   \
-	{                                                                                                  \
-	    inline PAWN_NATIVE__RETURN(type)                                                               \
-	        func(PAWN_NATIVE__PARAMETERS(type))                                                        \
-	    {                                                                                              \
-	        PAWN_NATIVE__MAYBE_RETURN(type)(PAWN_NATIVE_##nspace##_##func(PAWN_NATIVE__CALLING(type)));\
-	    }                                                                                              \
-	}
-
-
