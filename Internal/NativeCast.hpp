@@ -356,6 +356,35 @@ namespace pawn_natives
 		std::string
 			value_;
 	};
+	
+	template <>
+	class ParamCast<cell const*>
+	{
+	public:
+		ParamCast(AMX * amx, cell * params, int idx)
+		{
+			value_ = amx_Address(amx, params[idx]);
+		}
+
+		~ParamCast()
+		{
+			// Some versions may need to write data back here, but not this one.
+		}
+
+		ParamCast(ParamCast<std::string const &> const &) = delete;
+		ParamCast(ParamCast<std::string const &> &&) = delete;
+
+		operator cell const*()
+		{
+			return value_;
+		}
+
+		static constexpr int Size = 1;
+
+	private:
+		cell const*
+			value_;
+	};
 
 	template <size_t N, typename ... TS>
 	struct ParamArray {};
