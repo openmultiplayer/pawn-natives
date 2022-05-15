@@ -37,6 +37,7 @@ protected:
 
     AMX* GetAMX() const { return amx_; }
     cell* GetParams() const { return params_; }
+    static constexpr cell no_args[] = { 0 };
 
     template <cell FailRet>
     cell CallDoOuter(AMX* amx, cell* params)
@@ -52,8 +53,7 @@ protected:
                 params_ = params;
             else {
                 // NULL params means zero params, at least for GDK
-                cell no_args[] = {0};
-                params_ = no_args;
+                params_ = (cell*)(&no_args);
             }
 
             try {
