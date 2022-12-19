@@ -2,11 +2,11 @@
 #include <plugin.h>
 
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__)
-	#undef PLUGIN_EXPORT
-	#define PLUGIN_EXPORT PLUGIN_EXTERN_C __declspec(dllexport)
-	#define UNMANGLE(name,size) __pragma(comment(linker, "/EXPORT:" #name "=_" #name "@" #size ""));
+#undef PLUGIN_EXPORT
+#define PLUGIN_EXPORT PLUGIN_EXTERN_C __declspec(dllexport)
+#define UNMANGLE(name, size) __pragma(comment(linker, "/EXPORT:" #name "=_" #name "@" #size ""));
 #else
-	#define UNMANGLE(name,size)
+#define UNMANGLE(name, size)
 #endif
 
 #include <sampgdk/interop.h>
@@ -57,7 +57,8 @@ PAWN_HOOK(test, SetPlayerInterior, bool(int playerid, int interior))
 }
 
 int
-	g_pool = 0;
+	g_pool
+	= 0;
 
 PAWN_NATIVE(test, SetPlayerPoolSize, void(int num))
 {
@@ -70,7 +71,7 @@ PAWN_HOOK(test, GetPlayerPoolSize, int())
 	return g_pool;
 }
 
-extern void *
+extern void*
 	pAMXFunctions;
 
 UNMANGLE(Supports, 0)
@@ -80,7 +81,7 @@ PLUGIN_EXPORT unsigned int PLUGIN_CALL Supports()
 }
 
 UNMANGLE(Load, 4)
-PLUGIN_EXPORT bool PLUGIN_CALL Load(void **ppData)
+PLUGIN_EXPORT bool PLUGIN_CALL Load(void** ppData)
 {
 	pAMXFunctions = ppData[PLUGIN_DATA_AMX_EXPORTS];
 	return sampgdk::Load(ppData);
@@ -92,13 +93,13 @@ PLUGIN_EXPORT void PLUGIN_CALL Unload()
 }
 
 UNMANGLE(AmxLoad, 4)
-PLUGIN_EXPORT int PLUGIN_CALL AmxLoad(AMX *amx)
+PLUGIN_EXPORT int PLUGIN_CALL AmxLoad(AMX* amx)
 {
 	return pawn_natives::AmxLoad(amx);
 }
 
 UNMANGLE(AmxUnload, 4)
-PLUGIN_EXPORT int PLUGIN_CALL AmxUnload(AMX *amx)
+PLUGIN_EXPORT int PLUGIN_CALL AmxUnload(AMX* amx)
 {
 	return AMX_ERR_NONE;
 }
@@ -108,5 +109,3 @@ PLUGIN_EXPORT void PLUGIN_CALL ProcessTick()
 {
 	sampgdk::ProcessTick();
 }
-
-
