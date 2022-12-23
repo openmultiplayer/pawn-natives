@@ -366,7 +366,9 @@ class ParamCast<cell const*>
 public:
 	ParamCast(AMX* amx, cell* params, int idx)
 	{
-		value_ = amx_Address(amx, params[idx]);
+		cell* cptr;
+		amx_GetAddr(amx, params[idx], &cptr);
+		value_ = cptr;
 	}
 
 	~ParamCast()
