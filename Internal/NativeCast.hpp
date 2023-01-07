@@ -148,6 +148,10 @@ public:
 		cell*
 			src;
 		amx_GetAddr(amx, params[idx], &src);
+		if (src == nullptr)
+		{
+			throw pawn_natives::ParamCastFailure();
+		}
 		value_ = ParamLookup<T>::Ptr(src);
 	}
 
@@ -190,6 +194,10 @@ public:
 		cell*
 			src;
 		amx_GetAddr(amx, params[idx], &src);
+		if (src == nullptr)
+		{
+			throw pawn_natives::ParamCastFailure();
+		}
 		value_ = ParamLookup<T>::Ptr(src);
 	}
 
@@ -262,6 +270,10 @@ public:
 		if (len_)
 		{
 			amx_GetAddr(amx, params[idx], &addr_);
+			if (addr_ == nullptr)
+			{
+				throw pawn_natives::ParamCastFailure();
+			}
 #ifdef _WIN32
 			char* src = (char*)_malloca(len_);
 			amx_GetString(src, addr_, 0, len_);
@@ -322,8 +334,12 @@ public:
 		int
 			len;
 		amx_GetAddr(amx, params[idx], &addr);
+		if (addr == nullptr)
+		{
+			throw pawn_natives::ParamCastFailure();
+		}
 		amx_StrLen(addr, &len);
-		if (len)
+		if (len > 0)
 		{
 #ifdef _WIN32
 			char* src = (char*)_malloca(len + 1);
@@ -368,6 +384,10 @@ public:
 	{
 		cell* cptr;
 		amx_GetAddr(amx, params[idx], &cptr);
+		if (cptr == nullptr)
+		{
+			throw pawn_natives::ParamCastFailure();
+		}
 		value_ = cptr;
 	}
 
