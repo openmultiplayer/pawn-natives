@@ -103,7 +103,10 @@ else ()
 						${CMAKE_SOURCE_DIR}/sampgdk/src/sampgdk-build/libsampgdk.so
 				)
 
-				set(CMAKE_CXX_FLAGS "-std=gnu++0x -m32")
+				set(CMAKE_CXX_FLAGS "-std=gnu++0x")
+				if(TARGET_BUILD_ARCH MATCHES "(i[3-6]86|x86)" AND NOT MATCHES "(x64|x86_64|amd64)")
+					set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m32")
+				endif()
 		endif ()
 endif ()
 
