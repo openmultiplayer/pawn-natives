@@ -66,9 +66,13 @@ protected:
 					throw std::invalid_argument("Insufficient arguments.");
 				ret = this->CallDoInner(amx, params);
 			}
-			catch (ParamCastFailure const&)
+			catch (ParamCastFailure const& e)
 			{
 				// Acceptable failure (lookup failed etc.)
+				char
+					msg[1024];
+				sprintf(msg, "Exception in %s: \"%s\"", name_, e.what());
+				LOG_NATIVE_ERROR(msg);
 			}
 			catch (std::exception const& e)
 			{
