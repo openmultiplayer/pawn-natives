@@ -8,12 +8,6 @@
 
 namespace pawn_natives
 {
-
-// Error codes when a parameter casting fails
-static int ParamCastErrorCode_None = 0;
-static int ParamCastErrorCode_Fail = 1;
-static int ParamCastErrorCode_PoolFail = 2;
-
 template <typename T, typename = void>
 struct ParamLookup
 {
@@ -46,7 +40,7 @@ template <typename T>
 class ParamCast
 {
 public:
-	ParamCast(AMX* amx, cell* params, int idx, int& error = ParamCastErrorCode_None)
+	ParamCast(AMX* amx, cell* params, int idx)
 		: value_(ParamLookup<T>::Val(params[idx]))
 	{
 	}
@@ -64,6 +58,11 @@ public:
 		return value_;
 	}
 
+	bool Error() const
+	{
+		return false;
+	}
+
 	static constexpr int Size = 1;
 
 private:
@@ -75,7 +74,7 @@ template <typename T>
 class ParamCast<T const>
 {
 public:
-	ParamCast(AMX* amx, cell* params, int idx, int& error = ParamCastErrorCode_None)
+	ParamCast(AMX* amx, cell* params, int idx)
 		: value_(ParamLookup<T>::Val(params[idx]))
 	{
 		// In theory, because `T` could contain `const`, we don't actually
@@ -99,6 +98,11 @@ public:
 	operator T const() const
 	{
 		return value_;
+	}
+
+	bool Error() const
+	{
+		return false;
 	}
 
 	static constexpr int Size = 1;
@@ -128,14 +132,14 @@ template <typename T>
 class ParamCast<T&>
 {
 public:
-	ParamCast(AMX* amx, cell* params, int idx, int& error = ParamCastErrorCode_None)
+	ParamCast(AMX* amx, cell* params, int idx)
 	{
 		cell*
 			src;
 		amx_GetAddr(amx, params[idx], &src);
 		if (src == nullptr)
 		{
-			error = ParamCastErrorCode_Fail;
+			error_ = true;
 		}
 		else
 		{
@@ -158,18 +162,27 @@ public:
 		return *value_;
 	}
 
+	bool Error() const
+	{
+		return error_;
+	}
+
 	static constexpr int Size = 1;
 
 private:
 	T*
 		value_;
+
+	bool
+		error_
+		= false;
 };
 
 template <typename T>
 class ParamCast<T const&>
 {
 public:
-	ParamCast(AMX* amx, cell* params, int idx, int& error = ParamCastErrorCode_None)
+	ParamCast(AMX* amx, cell* params, int idx)
 	{
 		// In theory, because `T` could contain `const`, we don't actually
 		// need specialisations for constant parameters.  The pointer would
@@ -184,7 +197,7 @@ public:
 		amx_GetAddr(amx, params[idx], &src);
 		if (src == nullptr)
 		{
-			error = ParamCastErrorCode_Fail;
+			error_ = true;
 		}
 		else
 		{
@@ -205,11 +218,20 @@ public:
 		return *value_;
 	}
 
+	bool Error() const
+	{
+		return error_;
+	}
+
 	static constexpr int Size = 1;
 
 private:
 	T*
 		value_;
+
+	bool
+		error_
+		= false;
 };
 
 // Use `string &`.
@@ -217,7 +239,7 @@ template <>
 class ParamCast<char*>
 {
 public:
-	ParamCast(AMX* amx, cell* params, int idx, int& error = ParamCastErrorCode_None) = delete;
+	ParamCast(AMX* amx, cell* params, int idx) = delete;
 	ParamCast(ParamCast<char*> const&) = delete;
 	ParamCast(ParamCast<char*>&&) = delete;
 };
@@ -227,7 +249,7 @@ template <>
 class ParamCast<char const*>
 {
 public:
-	ParamCast(AMX* amx, cell* params, int idx, int& error = ParamCastErrorCode_None) = delete;
+	ParamCast(AMX* amx, cell* params, int idx) = delete;
 	ParamCast(ParamCast<char const*> const&) = delete;
 	ParamCast(ParamCast<char const*>&&) = delete;
 };
@@ -238,7 +260,7 @@ template <>
 class ParamCast<std::string*>
 {
 public:
-	ParamCast(AMX* amx, cell* params, int idx, int& error = ParamCastErrorCode_None) = delete;
+	ParamCast(AMX* amx, cell* params, int idx) = delete;
 	ParamCast(ParamCast<std::string*> const&) = delete;
 	ParamCast(ParamCast<std::string*>&&) = delete;
 };
@@ -247,7 +269,7 @@ template <>
 class ParamCast<std::string&>
 {
 public:
-	ParamCast(AMX* amx, cell* params, int idx, int& error = ParamCastErrorCode_None)
+	ParamCast(AMX* amx, cell* params, int idx)
 		: len_((int)params[idx + 1])
 	{
 		// Can't use `amx_StrParam` here, it allocates on the stack.  This
@@ -263,7 +285,7 @@ public:
 			amx_GetAddr(amx, params[idx], &addr_);
 			if (addr_ == nullptr)
 			{
-				error = ParamCastErrorCode_Fail;
+				error_ = true;
 			}
 			else
 			{
@@ -301,6 +323,11 @@ public:
 		return value_;
 	}
 
+	bool Error() const
+	{
+		return error_;
+	}
+
 	static constexpr int Size = 2;
 
 private:
@@ -312,13 +339,17 @@ private:
 
 	std::string
 		value_;
+
+	bool
+		error_
+		= false;
 };
 
 template <>
 class ParamCast<std::string const&>
 {
 public:
-	ParamCast(AMX* amx, cell* params, int idx, int& error = ParamCastErrorCode_None)
+	ParamCast(AMX* amx, cell* params, int idx)
 	{
 		// Can't use `amx_StrParam` here, it allocates on the stack.  This
 		// `const` version is not optional at all - it ensures that the
@@ -330,23 +361,23 @@ public:
 		amx_GetAddr(amx, params[idx], &addr);
 		if (addr == nullptr)
 		{
-			error = ParamCastErrorCode_Fail;
+			error_ = true;
 		}
 		else
 		{
 			amx_StrLen(addr, &len);
 			if (len > 0)
 			{
-	#ifdef _WIN32
+#ifdef _WIN32
 				char* src = (char*)_malloca(len + 1);
 				amx_GetString(src, addr, 0, len + 1);
 				value_ = src;
 				_freea(src);
-	#else
+#else
 				char* src = (char*)alloca(len + 1);
 				amx_GetString(src, addr, 0, len + 1);
 				value_ = src;
-	#endif
+#endif
 			}
 			else
 				value_.clear();
@@ -366,24 +397,33 @@ public:
 		return value_;
 	}
 
+	bool Error() const
+	{
+		return error_;
+	}
+
 	static constexpr int Size = 1;
 
 private:
 	std::string
 		value_;
+
+	bool
+		error_
+		= false;
 };
 
 template <>
 class ParamCast<cell const*>
 {
 public:
-	ParamCast(AMX* amx, cell* params, int idx, int& error = ParamCastErrorCode_None)
+	ParamCast(AMX* amx, cell* params, int idx)
 	{
 		cell* cptr;
 		amx_GetAddr(amx, params[idx], &cptr);
 		if (cptr == nullptr)
 		{
-			error = ParamCastErrorCode_Fail;
+			error_ = true;
 		}
 		else
 		{
@@ -404,11 +444,20 @@ public:
 		return value_;
 	}
 
+	bool Error() const
+	{
+		return error_;
+	}
+
 	static constexpr int Size = 1;
 
 private:
 	cell const*
 		value_;
+
+	bool
+		error_
+		= false;
 };
 
 template <size_t N, typename... TS>
@@ -423,12 +472,10 @@ struct ParamArray<N, T, TS...>
 	static inline auto Call(F that, AMX* amx, cell* params, cell failRet, size_t prev, NS&&... vs)
 		-> decltype(ParamArray<N - 1, TS...>::Call(that, amx, params, failRet, prev + ParamCast<T>::Size, std::forward<NS>(vs)..., ParamCast<T>(amx, params, prev)))
 	{
-		int error = ParamCastErrorCode_None;
-		auto ParamCast_ = ParamCast<T>(amx, params, prev, error);
-
-		if (error != ParamCastErrorCode_None)
+		auto ParamCast_ = ParamCast<T>(amx, params, prev);
+		if (ParamCast_.Error())
 		{
-			return failRet;	
+			return failRet;
 		}
 
 		return ParamArray<N - 1, TS...>::Call(that, amx, params, failRet, prev + ParamCast<T>::Size, std::forward<NS>(vs)..., ParamCast_);
