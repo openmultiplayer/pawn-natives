@@ -60,9 +60,10 @@ int
 	g_pool
 	= 0;
 
-PAWN_NATIVE(test, SetPlayerPoolSize, void(int num))
+PAWN_NATIVE(test, SetPlayerPoolSize, bool(int num))
 {
 	g_pool = num;
+	return true;
 }
 
 #undef GetPlayerPoolSize

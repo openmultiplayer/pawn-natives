@@ -8,27 +8,6 @@
 
 namespace pawn_natives
 {
-// This is for any casts that can't go on, but where this is somewhat expected.  For example, a
-// cast to a player when there is no player.
-class ParamCastFailure : public std::invalid_argument
-{
-public:
-	explicit ParamCastFailure()
-		: std::invalid_argument("ParamCast failed acceptably.")
-	{
-	}
-};
-
-// This is for true cast errors.
-class ParamCastError : public std::invalid_argument
-{
-public:
-	explicit ParamCastError()
-		: std::invalid_argument("ParamCast had an exception.")
-	{
-	}
-};
-
 template <typename T, typename = void>
 struct ParamLookup
 {
@@ -79,6 +58,11 @@ public:
 		return value_;
 	}
 
+	bool Error() const
+	{
+		return false;
+	}
+
 	static constexpr int Size = 1;
 
 private:
@@ -116,6 +100,11 @@ public:
 		return value_;
 	}
 
+	bool Error() const
+	{
+		return false;
+	}
+
 	static constexpr int Size = 1;
 
 private:
@@ -150,9 +139,12 @@ public:
 		amx_GetAddr(amx, params[idx], &src);
 		if (src == nullptr)
 		{
-			throw pawn_natives::ParamCastFailure();
+			error_ = true;
 		}
-		value_ = ParamLookup<T>::Ptr(src);
+		else
+		{
+			value_ = ParamLookup<T>::Ptr(src);
+		}
 	}
 
 	~ParamCast()
@@ -170,11 +162,20 @@ public:
 		return *value_;
 	}
 
+	bool Error() const
+	{
+		return error_;
+	}
+
 	static constexpr int Size = 1;
 
 private:
 	T*
 		value_;
+
+	bool
+		error_
+		= false;
 };
 
 template <typename T>
@@ -196,9 +197,12 @@ public:
 		amx_GetAddr(amx, params[idx], &src);
 		if (src == nullptr)
 		{
-			throw pawn_natives::ParamCastFailure();
+			error_ = true;
 		}
-		value_ = ParamLookup<T>::Ptr(src);
+		else
+		{
+			value_ = ParamLookup<T>::Ptr(src);
+		}
 	}
 
 	~ParamCast()
@@ -214,11 +218,20 @@ public:
 		return *value_;
 	}
 
+	bool Error() const
+	{
+		return error_;
+	}
+
 	static constexpr int Size = 1;
 
 private:
 	T*
 		value_;
+
+	bool
+		error_
+		= false;
 };
 
 // Use `string &`.
@@ -272,18 +285,21 @@ public:
 			amx_GetAddr(amx, params[idx], &addr_);
 			if (addr_ == nullptr)
 			{
-				throw pawn_natives::ParamCastFailure();
+				error_ = true;
 			}
+			else
+			{
 #ifdef _WIN32
-			char* src = (char*)_malloca(len_);
-			amx_GetString(src, addr_, 0, len_);
-			value_ = src;
-			_freea(src);
+				char* src = (char*)_malloca(len_);
+				amx_GetString(src, addr_, 0, len_);
+				value_ = src;
+				_freea(src);
 #else
-			char* src = (char*)alloca(len_);
-			amx_GetString(src, addr_, 0, len_);
-			value_ = src;
+				char* src = (char*)alloca(len_);
+				amx_GetString(src, addr_, 0, len_);
+				value_ = src;
 #endif
+			}
 		}
 		else
 		{
@@ -307,6 +323,11 @@ public:
 		return value_;
 	}
 
+	bool Error() const
+	{
+		return error_;
+	}
+
 	static constexpr int Size = 2;
 
 private:
@@ -318,6 +339,10 @@ private:
 
 	std::string
 		value_;
+
+	bool
+		error_
+		= false;
 };
 
 template <>
@@ -336,24 +361,27 @@ public:
 		amx_GetAddr(amx, params[idx], &addr);
 		if (addr == nullptr)
 		{
-			throw pawn_natives::ParamCastFailure();
-		}
-		amx_StrLen(addr, &len);
-		if (len > 0)
-		{
-#ifdef _WIN32
-			char* src = (char*)_malloca(len + 1);
-			amx_GetString(src, addr, 0, len + 1);
-			value_ = src;
-			_freea(src);
-#else
-			char* src = (char*)alloca(len + 1);
-			amx_GetString(src, addr, 0, len + 1);
-			value_ = src;
-#endif
+			error_ = true;
 		}
 		else
-			value_.clear();
+		{
+			amx_StrLen(addr, &len);
+			if (len > 0)
+			{
+#ifdef _WIN32
+				char* src = (char*)_malloca(len + 1);
+				amx_GetString(src, addr, 0, len + 1);
+				value_ = src;
+				_freea(src);
+#else
+				char* src = (char*)alloca(len + 1);
+				amx_GetString(src, addr, 0, len + 1);
+				value_ = src;
+#endif
+			}
+			else
+				value_.clear();
+		}
 	}
 
 	~ParamCast()
@@ -369,11 +397,20 @@ public:
 		return value_;
 	}
 
+	bool Error() const
+	{
+		return error_;
+	}
+
 	static constexpr int Size = 1;
 
 private:
 	std::string
 		value_;
+
+	bool
+		error_
+		= false;
 };
 
 template <>
@@ -386,9 +423,12 @@ public:
 		amx_GetAddr(amx, params[idx], &cptr);
 		if (cptr == nullptr)
 		{
-			throw pawn_natives::ParamCastFailure();
+			error_ = true;
 		}
-		value_ = cptr;
+		else
+		{
+			value_ = cptr;
+		}
 	}
 
 	~ParamCast()
@@ -404,11 +444,20 @@ public:
 		return value_;
 	}
 
+	bool Error() const
+	{
+		return error_;
+	}
+
 	static constexpr int Size = 1;
 
 private:
 	cell const*
 		value_;
+
+	bool
+		error_
+		= false;
 };
 
 template <size_t N, typename... TS>
@@ -420,10 +469,16 @@ template <size_t N, typename T, typename... TS>
 struct ParamArray<N, T, TS...>
 {
 	template <class F, typename... NS>
-	static inline auto Call(F that, AMX* amx, cell* params, size_t prev, NS&&... vs)
-		-> decltype(ParamArray<N - 1, TS...>::Call(that, amx, params, prev + ParamCast<T>::Size, std::forward<NS>(vs)..., ParamCast<T>(amx, params, prev)))
+	static inline auto Call(F that, AMX* amx, cell* params, cell failRet, size_t prev, NS&&... vs)
+		-> decltype(ParamArray<N - 1, TS...>::Call(that, amx, params, failRet, prev + ParamCast<T>::Size, std::forward<NS>(vs)..., ParamCast<T>(amx, params, prev)))
 	{
-		return ParamArray<N - 1, TS...>::Call(that, amx, params, prev + ParamCast<T>::Size, std::forward<NS>(vs)..., ParamCast<T>(amx, params, prev));
+		auto ParamCast_ = ParamCast<T>(amx, params, prev);
+		if (ParamCast_.Error())
+		{
+			return failRet;
+		}
+
+		return ParamArray<N - 1, TS...>::Call(that, amx, params, failRet, prev + ParamCast<T>::Size, std::forward<NS>(vs)..., ParamCast_);
 	}
 };
 
@@ -431,7 +486,7 @@ template <>
 struct ParamArray<0>
 {
 	template <class F, typename... NS>
-	static inline auto Call(F that, AMX* amx, cell* params, size_t prev, NS&&... vs)
+	static inline auto Call(F that, AMX* amx, cell* params, cell failRet, size_t prev, NS&&... vs)
 		-> decltype(that->Do(std::forward<NS>(vs)...))
 	{
 		return that->Do(std::forward<NS>(vs)...);
@@ -453,10 +508,10 @@ struct ParamData<T, TS...>
 	}
 
 	template <class F>
-	static inline auto Call(F that, AMX* amx, cell* params)
-		-> decltype(ParamArray<sizeof...(TS) + 1, T, TS...>::Call(that, amx, params, 1))
+	static inline auto Call(F that, AMX* amx, cell* params, cell failRet)
+		-> decltype(ParamArray<sizeof...(TS) + 1, T, TS...>::Call(that, amx, params, failRet, 1))
 	{
-		return ParamArray<sizeof...(TS) + 1, T, TS...>::Call(that, amx, params, 1);
+		return ParamArray<sizeof...(TS) + 1, T, TS...>::Call(that, amx, params, failRet, 1);
 	}
 };
 
@@ -469,7 +524,7 @@ struct ParamData<>
 	}
 
 	template <class F>
-	static inline auto Call(F that, AMX*, cell*)
+	static inline auto Call(F that, AMX*, cell*, cell)
 		-> decltype(that->Do())
 	{
 		return that->Do();

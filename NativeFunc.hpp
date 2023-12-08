@@ -64,11 +64,7 @@ protected:
 			{
 				if (count_ > (unsigned int)params_[0])
 					throw std::invalid_argument("Insufficient arguments.");
-				ret = this->CallDoInner(amx, params);
-			}
-			catch (ParamCastFailure const&)
-			{
-				// Acceptable failure (lookup failed etc.)
+				ret = this->CallDoInner(amx, params, FailRet);
 			}
 			catch (std::exception const& e)
 			{
@@ -94,7 +90,7 @@ protected:
 	}
 
 private:
-	virtual cell CallDoInner(AMX*, cell*) = 0;
+	virtual cell CallDoInner(AMX*, cell*, cell) = 0;
 
 	friend int AmxLoad(AMX* amx);
 
@@ -142,11 +138,11 @@ protected:
 	~NativeFunc() = default;
 
 private:
-	cell CallDoInner(AMX* amx, cell* params)
+	cell CallDoInner(AMX* amx, cell* params, cell failRet)
 	{
 		RET
 			ret
-			= ParamData<TS...>::Call(this, amx, params);
+			= ParamData<TS...>::Call(this, amx, params, failRet);
 		// TODO: static_assert that `sizeof (RET) == sizeof (cell)`.
 		return *(cell*)&ret;
 	}
@@ -171,9 +167,9 @@ protected:
 	~NativeFunc() = default;
 
 private:
-	cell CallDoInner(AMX* amx, cell* params)
+	cell CallDoInner(AMX* amx, cell* params, cell failRet)
 	{
-		ParamData<TS...>::Call(this, amx, params);
+		ParamData<TS...>::Call(this, amx, params, failRet);
 		return 1;
 	}
 };
@@ -197,9 +193,9 @@ protected:
 	~NativeFunc() = default;
 
 private:
-	cell CallDoInner(AMX* amx, cell* params)
+	cell CallDoInner(AMX* amx, cell* params, cell failRet)
 	{
-		return ParamData<TS...>::Call(this, amx, params) ? 1 : 0;
+		return ParamData<TS...>::Call(this, amx, params, failRet) ? 1 : 0;
 	}
 };
 
@@ -222,11 +218,11 @@ protected:
 	~NativeFunc() = default;
 
 private:
-	cell CallDoInner(AMX* amx, cell* params)
+	cell CallDoInner(AMX* amx, cell* params, cell failRet)
 	{
 		RET
 			ret
-			= ParamData<>::Call(this, amx, params);
+			= ParamData<>::Call(this, amx, params, failRet);
 		// TODO: static_assert that `sizeof (RET) == sizeof (cell)`.
 		return *(cell*)&ret;
 	}
@@ -251,9 +247,9 @@ protected:
 	~NativeFunc() = default;
 
 private:
-	cell CallDoInner(AMX* amx, cell* params)
+	cell CallDoInner(AMX* amx, cell* params, cell failRet)
 	{
-		ParamData<>::Call(this, amx, params);
+		ParamData<>::Call(this, amx, params, failRet);
 		return 1;
 	}
 };
@@ -277,9 +273,9 @@ protected:
 	~NativeFunc() = default;
 
 private:
-	cell CallDoInner(AMX* amx, cell* params)
+	cell CallDoInner(AMX* amx, cell* params, cell failRet)
 	{
-		return ParamData<>::Call(this, amx, params) ? 1 : 0;
+		return ParamData<>::Call(this, amx, params, failRet) ? 1 : 0;
 	}
 };
 }
